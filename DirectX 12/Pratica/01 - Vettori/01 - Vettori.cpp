@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file main.cpp
  * @author Fabxx
  * @brief
@@ -22,8 +22,7 @@
 
                       questo non vale per i parametri output.
 
-                      In questo codice verrà mostrata solo la somma, ma l'API fornisce anche le
-                      altre operazioni.
+                      In questo codice verranno mostrate le operazioni sui vettori.
  * @version 0.1
  * @date 2025-04-23
  *
@@ -32,35 +31,9 @@
  */
 
 #include <iostream>
-#include <vector>
 #include <DirectXPackedVector.h>
 
 using namespace DirectX;
-
-/*
-* Somma il vettore vuoto con i vettori inizializzati. Il risultato è un nuovo vettore.
-* 
-* NOTA: Non fare mai release() dei puntatori all'interno delle funzioni,
-* a meno che questi non siano delle copie e non dei riferimenti.
-* 
-* Se passati per riferimento, release() distrugge il puntatore dallo
-* stack di provenienza, non nello stack della funzione stessa!
-* 
-* unique_ptr non è un puntatore crudo come in C con *, ma è
-* un oggetto di tipo puntatore che contiene std::vector
-* 
-* se vogliamo accedere al riferimento di vector senza creare una copia, 
-  
-  dobbiamo usare & per accedere al riferimento.
-*/
-void sum(std::unique_ptr<std::vector<XMVECTOR>> &vectors) {
-    
-    XMVECTOR result {XMVectorZero()}; // 0, 0, 0, 0
-
-    for (size_t i { 0 }; i < vectors->size(); i++) { 
-        result = XMVectorAdd(result, vectors->at(i));
-    }
-}
 
 int main()
 {
@@ -71,21 +44,29 @@ int main()
         return 0;
     }
 
-    // set di vettori X, Y, Z, make_unique crea uno unique_ptr più sicuro.
-    auto vectors{ std::make_unique<std::vector<XMVECTOR>>()};
+    XMVECTOR vec_x{ XMVectorSet(5.0f, 14.0f, 11.0f, 1.0f) }, 
+             vec_y{ XMVectorSet(70.0f, 20.0f, 98.0f, 0.0f) };
 
-    vectors->push_back(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f));
-    vectors->push_back(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-    vectors->push_back(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
+    XMFLOAT4 final_vector {};
 
-    XMFLOAT4 result {};
+    XMStoreFloat4(&final_vector, XMVectorAdd(vec_x, vec_y));
 
-    XMStoreFloat4(&result, sum(vectors));
+    std::cout << "x: " << final_vector.x << "\n" << "y: " << final_vector.y << "\n" << "z: " << final_vector.z << "\n";
+    
+    final_vector = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    std::cout << "x: " << result.x << "\n" << "y: " << result.y << "\n" 
-              << "z: " << result.z;
-            
-    vectors.release();
+    XMStoreFloat4(&final_vector, XMVectorSubtract(vec_x, vec_y));
+
+    std::cout << "x: " << final_vector.x << "\n" << "y: " << final_vector.y << "\n" << "z: " << final_vector.z << "\n";
+
+    XMStoreFloat4(&final_vector, XMVectorMultiply(vec_x, vec_y));
+
+    std::cout << "x: " << final_vector.x << "\n" << "y: " << final_vector.y << "\n" << "z: " << final_vector.z << "\n";
+
+    XMStoreFloat4(&final_vector, XMVector4Dot(vec_x, vec_y));
+
+    // il prodotto scalare ritorna un singolo valore immagazzinato su x.
+    std::cout << "x: " << final_vector.x << "\n";
 
     return 0;
 }
