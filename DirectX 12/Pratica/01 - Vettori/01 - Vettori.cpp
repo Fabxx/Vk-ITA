@@ -60,8 +60,6 @@ void sum(std::unique_ptr<std::vector<XMVECTOR>> &vectors) {
     for (size_t i { 0 }; i < vectors->size(); i++) { 
         result = XMVectorAdd(result, vectors->at(i));
     }
-    std::cout << "x: " << result.x << "\n" << "y: " << result.y << "\n" 
-              << "z: " << result.z;
 }
 
 int main()
@@ -80,10 +78,13 @@ int main()
     vectors->push_back(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
     vectors->push_back(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
 
-    XMFLOAT4 final_vector {};
+    XMFLOAT4 result {};
 
-    XMStoreFloat4(&final_vector, sum(vectors));
+    XMStoreFloat4(&result, sum(vectors));
 
+    std::cout << "x: " << result.x << "\n" << "y: " << result.y << "\n" 
+              << "z: " << result.z;
+            
     vectors.release();
 
     return 0;
