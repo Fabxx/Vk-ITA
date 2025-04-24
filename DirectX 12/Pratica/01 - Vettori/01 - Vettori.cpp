@@ -22,7 +22,8 @@
 
                       questo non vale per i parametri output.
 
-                      In questo codice verranno mostrare le operazioni sui vettori.
+                      In questo codice verrà mostrata solo la somma, ma l'API fornisce anche le
+                      altre operazioni.
  * @version 0.1
  * @date 2025-04-23
  *
@@ -52,14 +53,15 @@ using namespace DirectX;
   
   dobbiamo usare & per accedere al riferimento.
 */
-XMVECTOR sum(std::unique_ptr<std::vector<XMVECTOR>> &vectors) {
+void sum(std::unique_ptr<std::vector<XMVECTOR>> &vectors) {
     
     XMVECTOR result {XMVectorZero()}; // 0, 0, 0, 0
 
     for (size_t i { 0 }; i < vectors->size(); i++) { 
         result = XMVectorAdd(result, vectors->at(i));
     }
-    return result;
+    std::cout << "x: " << result.x << "\n" << "y: " << result.y << "\n" 
+              << "z: " << result.z;
 }
 
 int main()
@@ -81,8 +83,6 @@ int main()
     XMFLOAT4 final_vector {};
 
     XMStoreFloat4(&final_vector, sum(vectors));
-
-    std::cout << "x: " << final_vector.x << "\n" << "y: " << final_vector.y << "\n" << "z: " << final_vector.z;
 
     vectors.release();
 
