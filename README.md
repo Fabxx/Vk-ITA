@@ -1,7 +1,2 @@
-# DirectX12-Docs
-Personal documentation for 3D Math and DirectX12, simplified and translated from Frank Luna's book
-
-# Resources
-- DirectX math documentation: https://github.com/microsoft/DirectXMath
-- SIMD vector library article: https://www.gamedeveloper.com/programming/designing-fast-cross-platform-simd-vector-libraries
-- DirectX 12 Tutorial from scratch: https://www.3dgep.com/learning-directx-12-1/
+# Vulkan
+Documentazione italiana per algebra lineare e guida all'utilizzo dell'API Vulkan, basata su `VkGuide`.
