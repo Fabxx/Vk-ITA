@@ -9,8 +9,9 @@ Un vettore possiede:
 Ciascun **componente** del vettore rappresenta una coordinata su un asse
 (**x**, **y,** **z**, **w**).
 
-![](media/image1.png){width="3.0282797462817146in"
-height="1.4913254593175853in"}
+Qui di seguito un immagine che mostra un esempio dei vettori **u**  e **v**
+
+<img src="https://github.com/Fabxx/Vulkan-ITA/blob/main/assets/01 - Vettori/01.png?raw=true" alt="01" width="500" height="300"/><br>
 
 Due vettori sono uguali solo se la dimensione, lunghezza e direzione di
 entrambi coincidono.
@@ -19,22 +20,23 @@ I computer usano un sistema di coordinate per rappresentare i vettori,
 poiché non possono rappresentarli geometricamente e hanno lo stesso
 punto di origine.
 
-Esempio di un vettore 3D:
+Esempio di un vettore 2D:
+
+v = ($v^{x},\ v^{y}$)
+
+Considera la seguente figura che rappresenta **v**:
+
+<img src="https://github.com/Fabxx/Vulkan-ITA/blob/main/assets/01 - Vettori/02.png?raw=true" alt="01" width="300" height="300"/><br>
+
+Qui invece il vettore **v** è 3D.
 
 v = ($v^{x},\ v^{y},\ v^{z}$)
 
-Considera la seguente figura che rappresenta un vettore 2D **v**:
+<img src="https://github.com/Fabxx/Vulkan-ITA/blob/main/assets/01 - Vettori/03.png?raw=true" alt="01" width="300" height="300"/><br>
 
-![](media/image2.png){width="1.7490671478565178in"
-height="1.4539391951006124in"}
+In base al numero di assi, il vettore può assumere più dimensioni.
 
-Qui il vettore **v** è 3D. Le coordinate in questa immagine sono "**Left
-handed**".
-
-![](media/image3.png){width="2.185566491688539in"
-height="1.3741535433070866in"}
-
-Ovvero un sistema di coordinate che prende come orientamento le tre dita
+Il sistema di coordinate prende come orientamento le tre dita
 della mano sinistra dove:
 
 - Il **pollice** è l'asse **Y**
