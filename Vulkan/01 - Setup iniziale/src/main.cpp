@@ -14,5 +14,6 @@ int main(void) {
     VulkanEngine vkEngine;
 
     vkEngine.init();
+    vkEngine.run();
     vkEngine.cleanup();
 }

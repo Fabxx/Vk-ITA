@@ -13,6 +13,8 @@
 #include <SDL2/SDL_vulkan.h>
 #include <cstddef>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "../include/vk_engine.hpp"
 #include "../include/vk_images.hpp"
@@ -428,3 +430,34 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd)
 	vkCmdClearColorImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
 }
 
+void VulkanEngine::run()
+{
+	SDL_Event e;
+	bool bQuit = false;
+
+	// main loop
+	while (!bQuit) {
+		while (SDL_PollEvent(&e) != 0) {
+			if (e.type == SDL_QUIT)
+				bQuit = true;
+
+			if (e.type == SDL_WINDOWEVENT) {
+				if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
+					stop_rendering = true;
+				}
+				if (e.window.event == SDL_WINDOWEVENT_RESTORED) {
+					stop_rendering = false;
+				}
+			}
+		}
+
+		// Non renderizzare se la finestra è minimizzata.
+		if (stop_rendering) {
+			// Rallenta la velocità del thread.
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			continue;
+		}
+
+		draw();
+	}
+}

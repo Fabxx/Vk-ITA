@@ -117,8 +117,10 @@ class VulkanEngine {
         VkExtent2D _drawExtent;
 
         bool bIsInitialized {false};
+        bool stop_rendering {false};
 
         void init();
+        void run();
         void draw();
         void cleanup();
 
