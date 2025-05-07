@@ -13,6 +13,7 @@
 
 #include "../include/vk_init.hpp"
 #include <iostream>
+#include <fstream>
 
 VkFenceCreateInfo vkInit::fenceInfo(VkFenceCreateFlagBits flags) {
 	VkFenceCreateInfo fenceInfo = {};

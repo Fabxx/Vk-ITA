@@ -19,6 +19,7 @@
 #include <functional>
 #include "vk_init.hpp"
 #include "vk_mem_alloc.h"
+#include "vk_descriptors.hpp"
 
 struct AllocatedImage {
     VkImage image;
@@ -116,6 +117,14 @@ class VulkanEngine {
         AllocatedImage _drawImage;
         VkExtent2D _drawExtent;
 
+        DescriptorAllocator globalDescriptorAllocator;
+
+        VkDescriptorSet _drawImageDescriptors;
+        VkDescriptorSetLayout _drawImageDescriptorLayout;
+
+        VkPipeline _gradientPipeline;
+        VkPipelineLayout _gradientPipelineLayout;
+
         bool bIsInitialized {false};
         bool stop_rendering {false};
 
@@ -129,6 +138,9 @@ class VulkanEngine {
         void init_swapchain();
         void init_commands();
         void init_sync_structures();
+        void init_pipelines();
+        void init_background_pipelines();
+        void init_descriptors();
 
         void create_swapchain(uint32_t width, uint32_t height);
 	    void destroy_swapchain();

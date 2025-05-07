@@ -3,6 +3,8 @@
  * @author Fabxx
  * @brief Classe che contiene funzioni per gestire le transizioni delle immagini sul command
  *        buffer per sfurttare il rendering dinamico.
+ * 
+ *		  La transizione cambia da read a write per l'immagine.
  * @version 0.1
  * @date 2025-05-02
  *

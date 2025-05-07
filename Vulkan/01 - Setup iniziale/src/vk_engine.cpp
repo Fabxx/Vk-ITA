@@ -15,6 +15,9 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <filesystem>
 
 #include "../include/vk_engine.hpp"
 #include "../include/vk_images.hpp"
@@ -43,6 +46,8 @@ void VulkanEngine::init() {
 	init_swapchain();
 	init_commands();
 	init_sync_structures();
+	init_descriptors();
+	init_pipelines();
 
     bIsInitialized = true;
 }
@@ -312,6 +317,9 @@ void VulkanEngine::init_sync_structures()
 /*
 * Funzione per disegnare sullo schermo.
 * 
+* NOTA: L'ideale sarebbe fare tutto tramite shaders, e non fare 
+* computazioni tramite CPU. questo codice verrà rimosso più in la.
+* 
 * Attendi che la GPU abbia terminato il suo lavoro
 * per poi resettare la Fence per sincronizzare il nuovo stato
 * del command buffer tra GPU e CPU.
@@ -327,6 +335,173 @@ void VulkanEngine::init_sync_structures()
 * 
 * 
 */
+
+
+/*
+* Funzione di init dei descriptors.
+* 
+* Creiamo 10 descrittori nel set di tipo STORE_IMAGE per la compute
+* shader usata.
+* 
+* Il vettore crea una pool che contiene 10 set (puntatori) con ciascuna 1 immagine.
+* 
+* Poi, si imposta la disposizione (layout) in scrittura, con il flag STAGE_COMPUTE.
+* 
+* Nota che la pool non ha allocazione dinamica, se si usano più di 10 descrittori
+* il programma crasha. La pool verrà resa dinamica più avanti.
+* 
+* 
+* Poi allochiamo il set di descrittori per la nostra immagine da disegnare.
+* 
+* In questo caso la struttura di allocazione indica che il set di descrittori
+* 
+* è di tipo STORAGE_IMAGE con layout generico.
+* 
+* Infine puliamo l'allocatore dei descrittori e i layout usati per l'immagine.
+* 
+* Il set 0 punta al Binding 0 dove l'immagine 2D viene presa dalla shader.
+* 
+* 
+*/
+void VulkanEngine::init_descriptors()
+{
+	std::vector<DescriptorAllocator::PoolSizeRatio> sizes = {{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }};
+
+	globalDescriptorAllocator.init_pool(_device, 10, sizes);
+
+	{
+		DescriptorLayoutBuilder builder;
+		builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+		_drawImageDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_COMPUTE_BIT);
+	}
+
+
+
+	_drawImageDescriptors = globalDescriptorAllocator.allocate(_device, _drawImageDescriptorLayout);
+
+	VkDescriptorImageInfo imgInfo{};
+	imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imgInfo.imageView = _drawImage.imageView;
+
+	VkWriteDescriptorSet drawImageWrite = {};
+	drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	drawImageWrite.pNext = nullptr;
+
+	drawImageWrite.dstBinding = 0;
+	drawImageWrite.dstSet = _drawImageDescriptors;
+	drawImageWrite.descriptorCount = 1;
+	drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	drawImageWrite.pImageInfo = &imgInfo;
+
+	vkUpdateDescriptorSets(_device, 1, &drawImageWrite, 0, nullptr);
+
+	_mainDeletionQueue.push_function([&]() {
+		globalDescriptorAllocator.destroy_pool(_device);
+
+		vkDestroyDescriptorSetLayout(_device, _drawImageDescriptorLayout, nullptr);
+	});
+}
+
+/*
+* Funzione che inizializza le pipeline in background.
+* 
+* Per creare una pipeline è necessario avere un array di layout 
+  di DescriptorSets e altre configurazioni come Push-Constants.
+
+  In questo caso non ne abbiamo bisogno per questa shader.
+
+  Ora creiamo l'oggetto pipeline vero e proprio aggiungendo lo 
+  shader module e altre informazioni tramite VkComputePipelineCreateInfo,
+
+  Dipende  dalle strutture stageInfo che richiede che la shader sia compilata
+
+  e dalla computePipelineCreateInfo, che richiede i dati compilati della struttura
+  precedente.
+
+  Se la compilazione della shader fallisce, allora il programma crasha.
+
+  Nota che l'entry point della shader in questo caso è main, ma se vogliamo
+  più shader module con diversi entry point, possiamo cambiare il nome
+  della funzione nella shader per poi farne riferimento qui.
+
+  Infine come ogni oggetto, distruggiamo lo shader module creato,
+  il layout della pipeline e la pipeline stessa.
+* 
+*/
+
+void VulkanEngine::init_pipelines()
+{
+	init_background_pipelines();
+}
+
+/*
+* Funzione che inizializza una pipeline, in questo caso una compute
+* pipeline.
+* 
+* La funzione scansiona la directory delle shaders e cerca i file compilati in 
+* 
+* SPRI-V da GLSL, se trova una shader valida, la carica all'interno dello shaderModule.
+* 
+* Infine, i dati della shader vengono passati ai descriptor sets.
+*/
+void VulkanEngine::init_background_pipelines()
+{
+	VkPipelineLayoutCreateInfo computeLayout{};
+	computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	computeLayout.pNext = nullptr;
+	computeLayout.pSetLayouts = &_drawImageDescriptorLayout;
+	computeLayout.setLayoutCount = 1;
+
+	vkInit::VK_CHECK(vkCreatePipelineLayout(_device, &computeLayout, nullptr, &_gradientPipelineLayout));
+
+
+	VkShaderModule computeDrawShader = VK_NULL_HANDLE;
+
+	namespace fs = std::filesystem;
+
+	const std::string shaderDir = "shaders";
+
+	for (const auto& entry : fs::directory_iterator(shaderDir)) {
+		if (entry.is_regular_file() && entry.path().extension() == ".spv") {
+			const std::string path = entry.path().string();
+
+			VkShaderModule shaderModule;
+
+			if (!vkInit::load_shader_module(path.c_str(), _device, &shaderModule)) {
+				fmt::print("Failed to load shader: {}\n", path);
+			}
+			else {
+				fmt::print("Loaded shader: {}\n", path);
+				computeDrawShader = shaderModule;
+			}
+		}
+	}
+
+	VkPipelineShaderStageCreateInfo stageinfo{};
+	stageinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	stageinfo.pNext = nullptr;
+	stageinfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	stageinfo.module = computeDrawShader;
+	stageinfo.pName = "main";
+
+	VkComputePipelineCreateInfo computePipelineCreateInfo{};
+	computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	computePipelineCreateInfo.pNext = nullptr;
+	computePipelineCreateInfo.layout = _gradientPipelineLayout;
+	computePipelineCreateInfo.stage = stageinfo;
+
+	vkInit::VK_CHECK(vkCreateComputePipelines(_device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, 
+											  nullptr, &_gradientPipeline));
+
+	vkDestroyShaderModule(_device, computeDrawShader, nullptr);
+
+	_mainDeletionQueue.push_function([&]() {
+		vkDestroyPipelineLayout(_device, _gradientPipelineLayout, nullptr);
+		vkDestroyPipeline(_device, _gradientPipeline, nullptr);
+		});
+}
+
+
 void VulkanEngine::draw() {
 
 	vkInit::VK_CHECK(vkWaitForFences(_device, 1, &get_current_frame()._renderFence, true, 1000000000));
@@ -358,6 +533,8 @@ void VulkanEngine::draw() {
 
 	vkutil::transition_image(get_current_frame().commandBuffer, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
+
+	// La funzione principale che disegna sullo schermo. Qui possiamo inserire altre funzioni di disegno in sequenza.
 	draw_background(get_current_frame().commandBuffer);
 
 	//Transita l'immagine e la swapchain nei loro corretti layout.
@@ -417,17 +594,30 @@ void VulkanEngine::draw() {
 	_frameNumber++;
 }
 
+/*
+* Funzione di disegno in background.
+* 
+* Richiama la compute shader impostata, 
+* dandogli un punto di aggancio alla nostra pipeline
+* 
+* poi dandogli i descriptor sets che abbiamo creato per quella shader
+* e immagine.
+* 
+* Infine, eseguiamo la pipeline con il comando dispatch. Il disegno viene
+* diviso di 16 su larghezza e 16 su altezza, poiché il gruppo di lavoro
+* è di 16x16 nella shader.
+* 
+*/
 void VulkanEngine::draw_background(VkCommandBuffer cmd)
 {
-	//make a clear-color from frame number. This will flash with a 120 frame period.
-	VkClearColorValue clearValue;
-	float flash = std::abs(std::sin(_frameNumber / 120.f));
-	clearValue = { { 0.0f, 0.0f, flash, 1.0f } };
+	
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _gradientPipeline);
 
-	VkImageSubresourceRange clearRange = vkutil::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _gradientPipelineLayout, 0, 1, 
+							&_drawImageDescriptors, 0, nullptr);
 
-	//clear image
-	vkCmdClearColorImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+	vkCmdDispatch(cmd, std::ceil(_drawExtent.width / 16.0), std::ceil(_drawExtent.height / 16.0), 1);
+
 }
 
 void VulkanEngine::run()

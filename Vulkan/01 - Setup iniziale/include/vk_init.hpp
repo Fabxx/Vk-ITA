@@ -10,8 +10,6 @@
  * 
  */
 
-//TODO: Cambia vkinit da classe a namespace, avendo solo funzioni non è necessario mantenere lo stato di variaibli in memoria.
-
 #pragma once
 
 #include "VkBootstrap.h"
@@ -32,6 +30,9 @@ namespace vkInit {
     // Funzioni di creazione di immagini separate dalla swapchain, per permettere scalatura e precisione di rendering
     VkImageCreateInfo image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
     VkImageViewCreateInfo imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+
+    // Funzione che carica le shader compilate in SPIR-V
+    bool load_shader_module(const char* filePath, VkDevice device, VkShaderModule* outShaderModule);
 
     VkResult VK_CHECK(VkResult x);
 };
